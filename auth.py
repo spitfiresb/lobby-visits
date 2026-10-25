@@ -20,6 +20,7 @@ NOT_ALLOWED_MESSAGE = (
     "This email isn't on the list of people who can use The Front Desk. "
     "Check it for typos, or ask Brightline's workplace team for access."
 )
+ALREADY_SIGNED_UP_MESSAGE = "You already have an account. Sign in instead."
 
 sessions = {}  # token -> email
 
@@ -43,11 +44,14 @@ def signup(email, password):
     if user is None:
         raise AuthError(403, NOT_ALLOWED_MESSAGE)
     if db.get_account(email):
-        raise AuthError(409, "You already have an account. Sign in instead.")
+        raise AuthError(409, ALREADY_SIGNED_UP_MESSAGE)
     if len(password) < MIN_PASSWORD_LENGTH:
         raise AuthError(400, f"Choose a password of at least {MIN_PASSWORD_LENGTH} characters.")
 
-    db.create_account(email, generate_password_hash(password))
+    # False if a second signup for this email got in at the same moment
+    # (a double-clicked button): both passed the check above.
+    if not db.create_account(email, generate_password_hash(password)):
+        raise AuthError(409, ALREADY_SIGNED_UP_MESSAGE)
     return user
 
 

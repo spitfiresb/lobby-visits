@@ -39,11 +39,21 @@ SEARCH_COLUMNS = ("visitor_name", "visitor_email", "visitor_company", "host_name
 # repeat visits on the same day are an hour or more apart.
 DUPLICATE_WINDOW = timedelta(minutes=5)
 
-# One shared connection. Flask serves requests on several threads, so the only
-# write after startup (creating an account) takes this lock.
+# One shared connection. Flask serves requests on several threads, and two
+# threads must never use a SQLite connection at the same time: they share its
+# prepared statements, so one can get the other's results or none at all (a
+# signed-in person answered with "not signed in"). So after startup, every
+# query goes through query() or create_account(), which take this lock.
 conn = sqlite3.connect(":memory:", check_same_thread=False)
 conn.row_factory = sqlite3.Row
-write_lock = threading.Lock()
+lock = threading.Lock()
+
+
+def query(sql, params=()):
+    """Run one SELECT and return all its rows, holding the lock."""
+    with lock:
+        return conn.execute(sql, params).fetchall()
+
 
 # Filled by load(): the weekdays with no visits at all (the iPad wasn't
 # recording), the first and last day the export covers, and the host teams.
@@ -200,42 +210,49 @@ def load():
 
 def find_allowed_user(email):
     """The allowlist entry for this email, or None if they're not on it."""
-    row = conn.execute(
+    rows = query(
         "SELECT email, name, role FROM allowed_users WHERE email = ?",
         (normalize_email(email),),
-    ).fetchone()
-    return dict(row) if row else None
+    )
+    return dict(rows[0]) if rows else None
 
 
 # --- Accounts -----------------------------------------------------------------
 
 def get_account(email):
     """The account for this email, or None if they haven't signed up."""
-    row = conn.execute(
+    rows = query(
         "SELECT email, password_hash FROM accounts WHERE email = ?",
         (normalize_email(email),),
-    ).fetchone()
-    return dict(row) if row else None
+    )
+    return dict(rows[0]) if rows else None
 
 
 def create_account(email, password_hash):
-    with write_lock:
-        conn.execute(
-            "INSERT INTO accounts (email, password_hash, created_at) VALUES (?, ?, ?)",
-            (normalize_email(email), password_hash, datetime.now().isoformat(timespec="seconds")),
-        )
-        conn.commit()
+    """Returns False if the email already has an account. auth.py checks that
+    first, but two signups at the same moment can both pass its check, so the
+    table's unique email is what stops the second one."""
+    with lock:
+        try:
+            with conn:  # commits, or rolls back if the insert fails
+                conn.execute(
+                    "INSERT INTO accounts (email, password_hash, created_at) VALUES (?, ?, ?)",
+                    (normalize_email(email), password_hash, datetime.now().isoformat(timespec="seconds")),
+                )
+        except sqlite3.IntegrityError:
+            return False
+    return True
 
 
 def list_users():
     """Everyone on the allowlist, and whether they've created an account."""
-    rows = conn.execute("""
+    rows = query("""
         SELECT u.email, u.name, u.role,
                a.created_at AS signed_up_at
         FROM allowed_users u
         LEFT JOIN accounts a ON a.email = u.email
         ORDER BY u.role, u.name
-    """).fetchall()
+    """)
     return [dict(row) for row in rows]
 
 
@@ -286,7 +303,7 @@ def list_visits(filters, role, page=1):
     where, params = build_where(filters)
     columns = ", ".join(columns_for(role))
 
-    total = conn.execute(f"SELECT COUNT(*) FROM visits {where}", params).fetchone()[0]
+    total = query(f"SELECT COUNT(*) FROM visits {where}", params)[0][0]
     total_pages = max(1, -(-total // PAGE_SIZE))  # ceiling division
 
     # Only fetch rows for a page that exists. app.py turns a page past the end
@@ -294,11 +311,11 @@ def list_visits(filters, role, page=1):
     # overflow SQLite's OFFSET.
     rows = []
     if page <= total_pages:
-        rows = conn.execute(
+        rows = query(
             f"SELECT {columns} FROM visits {where} "
             "ORDER BY signed_in_at DESC LIMIT ? OFFSET ?",
             params + [PAGE_SIZE, (page - 1) * PAGE_SIZE],
-        ).fetchall()
+        )
 
     return {
         "visits": [visit_to_dict(row) for row in rows],
@@ -312,8 +329,8 @@ def list_visits(filters, role, page=1):
 def get_visit(visit_id, role):
     """One visit, or None if there's no visit with that ID."""
     columns = ", ".join(columns_for(role))
-    row = conn.execute(f"SELECT {columns} FROM visits WHERE visit_id = ?", (visit_id,)).fetchone()
-    return visit_to_dict(row) if row else None
+    rows = query(f"SELECT {columns} FROM visits WHERE visit_id = ?", (visit_id,))
+    return visit_to_dict(rows[0]) if rows else None
 
 
 WEEKDAY_NAMES = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")  # date.weekday() 0-4
@@ -352,15 +369,15 @@ def get_stats(filters):
     lowers every hour equally, so the ranking can't change."""
     where, params = build_where(filters)
 
-    total = conn.execute(f"SELECT COUNT(*) FROM visits {where}", params).fetchone()[0]
-    visits_on = dict(conn.execute(
+    total = query(f"SELECT COUNT(*) FROM visits {where}", params)[0][0]
+    visits_on = dict(query(
         f"SELECT visit_date, COUNT(*) FROM visits {where} GROUP BY visit_date", params
-    ).fetchall())
-    by_hour = conn.execute(
+    ))
+    by_hour = query(
         f"""SELECT CAST(strftime('%H', signed_in_at) AS INTEGER) AS hour, COUNT(*) AS visits
             FROM visits {where} GROUP BY hour ORDER BY hour""",
         params,
-    ).fetchall()
+    )
 
     days = recorded_days(filters)
     by_day = []

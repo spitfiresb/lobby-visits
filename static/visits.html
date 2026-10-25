@@ -11,8 +11,10 @@
   <h1>Visits</h1>
 
   <!-- A plain GET form: Apply reloads /visits with the filters in the URL.
-       The list's own filters (by the table) belong to this form too, via form="filters". -->
-  <form id="filters" class="filters" method="get" action="/visits">
+       The list's own filters (by the table) belong to this form too, via form="filters".
+       autocomplete="off": after Back, the browser would otherwise put back the
+       values you'd picked but not applied, over the ones read from the URL. -->
+  <form id="filters" class="filters" method="get" action="/visits" autocomplete="off">
     <div class="field">From <input type="date" name="from"></div>
     <div class="field">To <input type="date" name="to"></div>
     <div class="field">Type
@@ -90,6 +92,13 @@
   for (const name of ["type", "team", "pre_registered", "signed_out"]) {
     makeDropdown(form.elements[name]);
   }
+
+  // Back can also bring this page back from the browser's memory exactly as
+  // you left it, half-changed filters and all. Reload it, so the form and the
+  // results both come from the URL again.
+  window.addEventListener("pageshow", (event) => {
+    if (event.persisted) location.reload();
+  });
 
   let isAdmin = false;
 

@@ -131,7 +131,8 @@ def parse_list_filters():
 
 def parse_page():
     value = request.args.get("page", "1").strip()
-    if not value.isdigit() or int(value) < 1:
+    # isdecimal(), not isdigit(): isdigit() also accepts "²", which int() can't read.
+    if not value.isdecimal() or int(value) < 1:
         raise InputError(f"'page' must be a whole number from 1 up, but got '{value}'.")
     return int(value)
 
