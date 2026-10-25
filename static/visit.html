@@ -13,11 +13,12 @@
   <p id="error" class="error" hidden></p>
   <h1 id="title"></h1>
   <dl id="details" class="panel" hidden></dl>
+  <p id="admin-only" class="muted" hidden>The visitor's name, email and company, and who hosted them, are only shown to admins.</p>
 </main>
 <script src="/static/app.js"></script>
 <script>
   run(async () => {
-    await signedIn();
+    const me = await signedIn();
     el("back").href = "/visits" + location.search;  // back to the same filtered list
 
     const visitId = location.pathname.split("/")[2];  // /visits/V001219
@@ -45,6 +46,8 @@
       .map(([label, value]) => `<dt>${label}</dt><dd>${esc(value)}</dd>`)
       .join("");
     el("details").hidden = false;
+    // Tell a viewer why there's no name, so it doesn't look like missing data.
+    el("admin-only").hidden = me.role === "admin";
   });
 </script>
 </body>
