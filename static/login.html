@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Sign in · The Front Desk</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<nav><a class="brand" href="/visits">The Front Desk</a></nav>
+<main>
+  <h1>Sign in</h1>
+  <form id="form" class="card">
+    <p id="error" class="error" hidden></p>
+    <label>Email <input name="email" type="email" required></label>
+    <label>Password <input name="password" type="password" required></label>
+    <button>Sign in</button>
+    <a id="signup-link" href="/signup">Create an account</a>
+  </form>
+</main>
+<script src="/static/app.js"></script>
+<script>
+  el("signup-link").href = "/signup" + location.search;  // keep ?next= if there is one
+
+  el("form").onsubmit = async (event) => {
+    event.preventDefault();
+    try {
+      await post("/auth/login", event.target);
+      location.href = nextPage();
+    } catch (e) {
+      showError(e.message);
+    }
+  };
+</script>
+</body>
+</html>

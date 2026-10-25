@@ -314,4 +314,13 @@ def get_stats(filters):
         "total": total,
         "by_day_of_week": [{"day": DAY_NAMES[r["day"]], "visits": r["visits"]} for r in by_day],
         "by_hour": [{"hour": r["hour"], "visits": r["visits"]} for r in by_hour],
+        "missing_days": missing_days_in(filters),
     }
+
+
+def missing_days_in(filters):
+    """The days with no data that fall inside the chosen date range, so the
+    page can warn that those days aren't in the counts."""
+    date_from = filters.get("date_from") or "0000-00-00"
+    date_to = filters.get("date_to") or "9999-99-99"
+    return [day for day in missing_days if date_from <= day <= date_to]

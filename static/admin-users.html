@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Users · The Front Desk</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<nav></nav>
+<main>
+  <p id="loading">Loading…</p>
+  <p id="error" class="error" hidden></p>
+
+  <div id="no-access" hidden>
+    <h1>You don't have access to this page</h1>
+    <p><a href="/visits">Go to visits</a></p>
+  </div>
+
+  <div id="users-section" hidden>
+    <h1>Users</h1>
+    <table id="users"></table>
+  </div>
+</main>
+<script src="/static/app.js"></script>
+<script>
+  run(async () => {
+    const me = await signedIn();
+
+    // A courtesy for a viewer who types this URL. The API is what actually
+    // keeps them out: /api/users answers a viewer with 403.
+    if (me.role !== "admin") {
+      el("no-access").hidden = false;
+      return;
+    }
+
+    const { users } = await api("/api/users");
+    el("users").innerHTML =
+      "<tr><th>Name</th><th>Email</th><th>Role</th><th>Signed up</th></tr>" +
+      users.map((user) => `<tr>
+        <td>${esc(user.name)}</td>
+        <td>${esc(user.email)}</td>
+        <td>${capitalize(user.role)}</td>
+        <td>${user.signed_up_at ? formatDate(user.signed_up_at.slice(0, 10)) : '<span class="muted">Not yet</span>'}</td>
+      </tr>`).join("");
+    el("users-section").hidden = false;
+  });
+</script>
+</body>
+</html>

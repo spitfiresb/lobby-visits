@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Create account · The Front Desk</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<nav><a class="brand" href="/visits">The Front Desk</a></nav>
+<main>
+  <h1>Create an account</h1>
+  <form id="form" class="card">
+    <p id="error" class="error" hidden></p>
+    <label>Work email <input name="email" type="email" required></label>
+    <label>Password (8+ characters) <input name="password" type="password" required></label>
+    <button>Create account</button>
+    <a id="login-link" href="/login">Sign in instead</a>
+  </form>
+</main>
+<script src="/static/app.js"></script>
+<script>
+  el("login-link").href = "/login" + location.search;  // keep ?next= if there is one
+
+  el("form").onsubmit = async (event) => {
+    event.preventDefault();
+    try {
+      await post("/auth/signup", event.target);  // also signs you in
+      location.href = nextPage();
+    } catch (e) {
+      showError(e.message);
+    }
+  };
+</script>
+</body>
+</html>

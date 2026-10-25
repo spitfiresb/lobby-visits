@@ -13,8 +13,9 @@ import db
 
 MIN_PASSWORD_LENGTH = 8
 
-# What a person not on the allowlist is told. PLACEHOLDER: see "Refused
-# sign-up message" in the CLAUDE.md decisions log.
+# What a person not on the allowlist is told. Friendly on purpose: a colleague
+# who mistyped their email learns what to fix, which matters more than hiding
+# from a stranger that an allowlist exists.
 NOT_ALLOWED_MESSAGE = (
     "This email isn't on the list of people who can use The Front Desk. "
     "Check it for typos, or ask Brightline's workplace team for access."

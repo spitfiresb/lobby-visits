@@ -9,7 +9,7 @@ Every /api/ request goes through the same checks, in this order:
 
 from datetime import datetime
 
-from flask import Flask, g, jsonify, request
+from flask import Flask, g, jsonify, redirect, request
 
 import auth
 import db
@@ -44,7 +44,10 @@ def handle_auth_error(e):
 
 @app.errorhandler(404)
 def handle_not_found(e):
-    return error(404, f"There's nothing at {request.path}.")
+    # curl and fetch() get JSON. A person in a browser gets a real page.
+    if request.path.startswith(("/api/", "/auth/")):
+        return error(404, f"There's nothing at {request.path}.")
+    return app.send_static_file("404.html"), 404
 
 
 @app.errorhandler(405)
@@ -181,6 +184,40 @@ def list_users():
     if g.user["role"] != "admin":
         return error(403, "Only admins can see the user list.")
     return jsonify(users=db.list_users())
+
+
+# --- Pages --------------------------------------------------------------------
+# Each URL has its own HTML file, so refreshing any page keeps you on it. The
+# files contain no data: they fetch it from /api/ and the API applies the rules.
+
+@app.get("/")
+def home():
+    return redirect("/visits")
+
+
+@app.get("/login")
+def login_page():
+    return app.send_static_file("login.html")
+
+
+@app.get("/signup")
+def signup_page():
+    return app.send_static_file("signup.html")
+
+
+@app.get("/visits")
+def visits_page():
+    return app.send_static_file("visits.html")
+
+
+@app.get("/visits/<visit_id>")
+def visit_page(visit_id):
+    return app.send_static_file("visit.html")
+
+
+@app.get("/admin/users")
+def admin_users_page():
+    return app.send_static_file("admin-users.html")
 
 
 if __name__ == "__main__":

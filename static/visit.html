@@ -1,0 +1,50 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Visit · The Front Desk</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<nav></nav>
+<main>
+  <p><a id="back" href="/visits">← Visits</a></p>
+  <p id="loading">Loading…</p>
+  <p id="error" class="error" hidden></p>
+  <h1 id="title"></h1>
+  <dl id="details"></dl>
+</main>
+<script src="/static/app.js"></script>
+<script>
+  run(async () => {
+    await signedIn();
+    el("back").href = "/visits" + location.search;  // back to the same filtered list
+
+    const visitId = location.pathname.split("/")[2];  // /visits/V001219
+    const visit = await api("/api/visits/" + encodeURIComponent(visitId));
+
+    // An admin sees the visitor's name. A viewer's response has no name in it,
+    // so the heading is the visit type instead.
+    el("title").textContent = visit.visitor_name ?? capitalize(visit.visit_type) + " visit";
+
+    const rows = [
+      ["Email", visit.visitor_email],
+      ["Company", visit.visitor_company],
+      ["Type", capitalize(visit.visit_type)],
+      ["Date", formatDate(visit.visit_date)],
+      ["Signed in", formatTime(visit.signed_in_at)],
+      ["Signed out", formatSignedOut(visit)],
+      ["Host", visit.host_name && `${visit.host_name}, ${visit.host_email}`],
+      ["Host team", visit.host_team],
+      ["Pre-registered", visit.pre_registered ? "Yes" : "No"],
+      ["Visit ID", visit.visit_id],
+    ];
+    // Skip fields the API didn't send (the identity fields, for a viewer).
+    el("details").innerHTML = rows
+      .filter(([, value]) => value !== undefined)
+      .map(([label, value]) => `<dt>${label}</dt><dd>${esc(value)}</dd>`)
+      .join("");
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,132 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Visits · The Front Desk</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<nav></nav>
+<main>
+  <h1>Visits</h1>
+
+  <!-- A plain GET form: Apply reloads /visits with the filters in the URL. -->
+  <form id="filters" class="filters" method="get" action="/visits">
+    <label>From <input type="date" name="from"></label>
+    <label>To <input type="date" name="to"></label>
+    <label>Type
+      <select name="type">
+        <option value="">All</option>
+        <option value="guest">Guest</option>
+        <option value="interview">Interview</option>
+        <option value="contractor">Contractor</option>
+        <option value="vendor">Vendor</option>
+      </select>
+    </label>
+    <button>Apply</button>
+    <a href="/visits">Clear</a>
+  </form>
+
+  <p id="loading">Loading…</p>
+  <p id="error" class="error" hidden></p>
+  <p id="gap" class="warning" hidden></p>
+  <p id="empty" hidden>No visits match these filters.</p>
+
+  <div id="results" hidden>
+    <div class="headlines">
+      <div><b id="total"></b> visits</div>
+      <div><b id="busiest-day"></b> busiest day</div>
+      <div><b id="busiest-hour"></b> busiest hour</div>
+    </div>
+    <div class="two-col">
+      <div><h3>By day</h3><table id="by-day"></table></div>
+      <div><h3>By hour</h3><table id="by-hour"></table></div>
+    </div>
+    <table id="visits"></table>
+    <p id="pager"></p>
+  </div>
+</main>
+<script src="/static/app.js"></script>
+<script>
+  run(async () => {
+    const me = await signedIn();
+    const isAdmin = me.role === "admin";
+    const filters = new URLSearchParams(location.search);
+
+    // Show the URL's filters in the form.
+    for (const name of ["from", "to", "type"]) {
+      el("filters").elements[name].value = filters.get(name) || "";
+    }
+
+    // The API takes the same query string as this page, so a pasted link
+    // and a refresh both show exactly the same results.
+    const stats = await api("/api/stats" + location.search);
+    const list = await api("/api/visits" + location.search);
+
+    if (stats.missing_days.length > 0) {
+      el("gap").textContent = "No data for " + stats.missing_days.map(formatDate).join(", ") +
+        ". Those days are missing from these counts.";
+      el("gap").hidden = false;
+    }
+
+    if (list.total === 0) {
+      el("empty").hidden = false;
+      return;
+    }
+
+    // Headline numbers and the two count tables
+    el("total").textContent = stats.total;
+    el("busiest-day").textContent = busiest(stats.by_day_of_week).day;
+    el("busiest-hour").textContent = formatHour(busiest(stats.by_hour).hour);
+    el("by-day").innerHTML = barRows(stats.by_day_of_week.map((r) => [r.day, r.visits]));
+    el("by-hour").innerHTML = barRows(stats.by_hour.map((r) => [formatHour(r.hour), r.visits]));
+
+    // The visit list. A viewer's rows have no visitor or host names in them,
+    // so their table shows "Visitor" and the host's team instead.
+    const headings = isAdmin
+      ? ["Date", "In", "Out", "Visitor", "Company", "Type", "Host", ""]
+      : ["Date", "In", "Out", "Visitor", "Type", "Host team", ""];
+    el("visits").innerHTML =
+      "<tr>" + headings.map((h) => `<th>${h}</th>`).join("") + "</tr>" +
+      list.visits.map((visit) => {
+        const cells = [formatDate(visit.visit_date), formatTime(visit.signed_in_at), formatSignedOut(visit)];
+        if (isAdmin) {
+          cells.push(esc(visit.visitor_name), esc(visit.visitor_company), capitalize(visit.visit_type),
+                     `${esc(visit.host_name)} (${esc(visit.host_team)})`);
+        } else {
+          cells.push('<span class="muted">Visitor</span>', capitalize(visit.visit_type), esc(visit.host_team));
+        }
+        // Carry the filters along so "back" returns to this same list.
+        cells.push(`<a href="/visits/${esc(visit.visit_id)}${esc(location.search)}">View</a>`);
+        return "<tr>" + cells.map((c) => `<td>${c}</td>`).join("") + "</tr>";
+      }).join("");
+
+    el("pager").innerHTML = [
+      list.page > 1 ? pageLink(filters, list.page - 1, "← Previous") : "",
+      `Page ${list.page} of ${list.total_pages}`,
+      list.page < list.total_pages ? pageLink(filters, list.page + 1, "Next →") : "",
+    ].join(" ");
+
+    el("results").hidden = false;
+  });
+
+  function busiest(rows) {
+    return rows.reduce((best, row) => (row.visits > best.visits ? row : best));
+  }
+
+  // Table rows of label, count and a bar scaled to the biggest count.
+  function barRows(rows) {
+    const max = Math.max(...rows.map(([, count]) => count));
+    return rows.map(([label, count]) =>
+      `<tr><td>${label}</td><td>${count}</td>` +
+      `<td><span class="bar" style="width:${Math.round(100 * count / max)}px"></span></td></tr>`
+    ).join("");
+  }
+
+  function pageLink(filters, page, label) {
+    filters.set("page", page);
+    return `<a href="/visits?${filters}">${label}</a>`;
+  }
+</script>
+</body>
+</html>
