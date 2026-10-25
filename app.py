@@ -77,10 +77,12 @@ def parse_date(name):
     if not value:
         return None
     try:
-        datetime.strptime(value, "%Y-%m-%d")
+        parsed = datetime.strptime(value, "%Y-%m-%d")
     except ValueError:
         raise InputError(f"'{name}' must be a date like 2026-08-01, but got '{value}'.")
-    return value
+    # strptime also accepts "2026-8-1", but the database compares dates as
+    # text, so always pass on the zero-padded form: "2026-08-01".
+    return parsed.date().isoformat()
 
 
 def parse_filters():
@@ -112,8 +114,18 @@ def parse_page():
 # --- Auth routes --------------------------------------------------------------
 
 def form_data():
-    """Accept JSON (curl, fetch) or a plain HTML form post."""
-    return request.get_json(silent=True) or request.form
+    """Email and password from JSON (curl, fetch) or a plain HTML form post.
+    Anything that isn't text (a number, a list) counts as missing, so odd
+    input gets the normal "enter your email" answer rather than a crash."""
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        data = request.form
+    email = data.get("email")
+    password = data.get("password")
+    return {
+        "email": email if isinstance(email, str) else "",
+        "password": password if isinstance(password, str) else "",
+    }
 
 
 def signed_in_response(user, token, status=200):

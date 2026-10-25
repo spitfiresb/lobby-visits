@@ -264,18 +264,25 @@ def list_visits(filters, role, page=1):
     columns = ", ".join(columns_for(role))
 
     total = conn.execute(f"SELECT COUNT(*) FROM visits {where}", params).fetchone()[0]
-    rows = conn.execute(
-        f"SELECT {columns} FROM visits {where} "
-        "ORDER BY signed_in_at DESC LIMIT ? OFFSET ?",
-        params + [PAGE_SIZE, (page - 1) * PAGE_SIZE],
-    ).fetchall()
+    total_pages = max(1, -(-total // PAGE_SIZE))  # ceiling division
+
+    # Only fetch rows for a page that exists. app.py turns a page past the end
+    # into a 400, and skipping the query means a huge page number can't
+    # overflow SQLite's OFFSET.
+    rows = []
+    if page <= total_pages:
+        rows = conn.execute(
+            f"SELECT {columns} FROM visits {where} "
+            "ORDER BY signed_in_at DESC LIMIT ? OFFSET ?",
+            params + [PAGE_SIZE, (page - 1) * PAGE_SIZE],
+        ).fetchall()
 
     return {
         "visits": [visit_to_dict(row) for row in rows],
         "total": total,
         "page": page,
         "page_size": PAGE_SIZE,
-        "total_pages": max(1, -(-total // PAGE_SIZE)),  # ceiling division
+        "total_pages": total_pages,
     }
 
 
