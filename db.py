@@ -362,8 +362,9 @@ def get_stats(filters):
     the export has 14 Wednesdays but 13 of every other weekday, so totals
     compare unequal numbers of days (totals say Wednesday; averages say
     Tuesday). This is how road traffic counts handle sensor outages (the
-    AASHTO method): average each weekday over the days that were recorded,
-    and never fill in or zero the missing ones. See CLAUDE.md for sources.
+    AASHTO method, in the US FHWA Traffic Monitoring Guide): average each
+    weekday over the days that were recorded, and never fill in or zero the
+    missing ones.
 
     Busiest hour stays a plain count: the outage removed whole days, which
     lowers every hour equally, so the ranking can't change."""
