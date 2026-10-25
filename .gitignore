@@ -1,5 +1,6 @@
-# Local notes, not part of the submission
+# Local notes and reference docs
 *.md
 !README.md
+/*.html
 .claude/
 __pycache__/
