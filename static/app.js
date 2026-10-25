@@ -65,10 +65,19 @@ async function signOut() {
 }
 
 // Where to go after signing in: the page that sent you here, or /visits.
-// Only paths on this site, so a crafted link can't send someone elsewhere.
+// Only pages on this site, so a crafted link can't send someone elsewhere.
+// Checking the text isn't enough: browsers read "/\evil.com" and
+// "/<tab>/evil.com" as "//evil.com". So resolve it the way the browser
+// will, and only follow it if it stays on this site.
 function nextPage() {
   const next = new URLSearchParams(location.search).get("next");
-  return next && next.startsWith("/") && !next.startsWith("//") ? next : "/visits";
+  if (!next || !next.startsWith("/")) return "/visits";
+  try {
+    const url = new URL(next, location.origin);
+    return url.origin === location.origin ? url.pathname + url.search + url.hash : "/visits";
+  } catch {
+    return "/visits";
+  }
 }
 
 // Names and companies come from a CSV export, so escape them before
