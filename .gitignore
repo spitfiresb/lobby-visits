@@ -1,6 +1,7 @@
 # Local notes and reference docs
 *.md
 !README.md
+!ARCHITECTURE.md
 /*.html
 .claude/
 __pycache__/
