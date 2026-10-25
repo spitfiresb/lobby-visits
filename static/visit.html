@@ -8,11 +8,11 @@
 <body>
 <nav></nav>
 <main>
-  <p><a id="back" href="/visits">← Visits</a></p>
+  <a id="back" class="back" href="/visits">← Visits</a>
   <p id="loading">Loading…</p>
   <p id="error" class="error" hidden></p>
   <h1 id="title"></h1>
-  <dl id="details"></dl>
+  <dl id="details" class="panel" hidden></dl>
 </main>
 <script src="/static/app.js"></script>
 <script>
@@ -44,6 +44,7 @@
       .filter(([, value]) => value !== undefined)
       .map(([label, value]) => `<dt>${label}</dt><dd>${esc(value)}</dd>`)
       .join("");
+    el("details").hidden = false;
   });
 </script>
 </body>

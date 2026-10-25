@@ -29,6 +29,10 @@ VIEWER_COLUMNS = (
     "visit_type", "host_team", "pre_registered",
 )
 
+# What an admin's search looks in. All admin-only columns: see list_visits in
+# app.py for why a viewer can't search.
+SEARCH_COLUMNS = ("visitor_name", "visitor_email", "visitor_company", "host_name")
+
 # A second sign-in by the same visitor, for the same host and visit type,
 # within this window is a double sign-in on the lobby iPad, not a real second
 # visit. Every duplicate in the export is under 2 minutes apart; genuine
@@ -42,9 +46,10 @@ conn.row_factory = sqlite3.Row
 write_lock = threading.Lock()
 
 # Filled by load(): the weekdays with no visits at all (the iPad wasn't
-# recording), and the first and last day the export covers.
+# recording), the first and last day the export covers, and the host teams.
 missing_days = []
 export_dates = {"first": None, "last": None}
+host_teams = []
 
 
 def normalize_email(email):
@@ -136,6 +141,7 @@ def load():
     missing_days[:] = find_missing_weekdays(visits)
     export_dates["first"] = min(v["visit_date"] for v in visits)
     export_dates["last"] = max(v["visit_date"] for v in visits)
+    host_teams[:] = sorted({v["host_team"] for v in visits})
 
     conn.executescript("""
         DROP TABLE IF EXISTS allowed_users;
@@ -246,8 +252,8 @@ def visit_to_dict(row):
 
 
 def build_where(filters):
-    """SQL WHERE clause and its parameters for the date range and visit type.
-    `filters` has already been validated by app.py; any key may be None."""
+    """SQL WHERE clause and its parameters for the chosen filters.
+    `filters` has already been validated by app.py; any key may be missing or None."""
     conditions, params = [], []
     if filters.get("date_from"):
         conditions.append("visit_date >= ?")
@@ -258,6 +264,19 @@ def build_where(filters):
     if filters.get("visit_type"):
         conditions.append("visit_type = ?")
         params.append(filters["visit_type"])
+    if filters.get("host_team"):
+        conditions.append("host_team = ?")
+        params.append(filters["host_team"])
+    if filters.get("pre_registered") is not None:
+        conditions.append("pre_registered = ?")
+        params.append(int(filters["pre_registered"]))
+    if filters.get("signed_out") is not None:
+        conditions.append("signed_out_at IS NOT NULL" if filters["signed_out"] else "signed_out_at IS NULL")
+    if filters.get("search"):
+        # instr() rather than LIKE, so a % or _ in the search is just a character.
+        matches = [f"instr(lower({column}), lower(?)) > 0" for column in SEARCH_COLUMNS]
+        conditions.append("(" + " OR ".join(matches) + ")")
+        params += [filters["search"]] * len(SEARCH_COLUMNS)
     where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
     return where, params
 

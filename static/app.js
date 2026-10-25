@@ -47,10 +47,16 @@ async function signedIn() {
   const me = await api("/api/me");
   document.querySelector("nav").innerHTML = `
     <a class="brand" href="/visits">The Front Desk</a>
-    <a href="/visits">Visits</a>
-    ${me.role === "admin" ? '<a href="/admin/users">Users</a>' : ""}
+    ${navLink("/visits", "Visits")}
+    ${me.role === "admin" ? navLink("/admin/users", "Users") : ""}
     <span class="who">${esc(me.name)} (${me.role}) · <a href="#" onclick="signOut()">Sign out</a></span>`;
   return me;
+}
+
+// The link for the current section is drawn darker.
+function navLink(path, text) {
+  const active = location.pathname.startsWith(path) ? ' class="active"' : "";
+  return `<a href="${path}"${active}>${text}</a>`;
 }
 
 async function signOut() {

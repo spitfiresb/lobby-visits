@@ -18,7 +18,7 @@
 
   <div id="users-section" hidden>
     <h1>Users</h1>
-    <table id="users"></table>
+    <div class="table panel"><table id="users"></table></div>
   </div>
 </main>
 <script src="/static/app.js"></script>
@@ -39,7 +39,7 @@
       users.map((user) => `<tr>
         <td>${esc(user.name)}</td>
         <td>${esc(user.email)}</td>
-        <td>${capitalize(user.role)}</td>
+        <td><span class="tag">${capitalize(user.role)}</span></td>
         <td>${user.signed_up_at ? formatDate(user.signed_up_at.slice(0, 10)) : '<span class="muted">Not yet</span>'}</td>
       </tr>`).join("");
     el("users-section").hidden = false;

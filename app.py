@@ -104,6 +104,31 @@ def parse_filters():
     return {"date_from": date_from, "date_to": date_to, "visit_type": visit_type}
 
 
+def parse_yes_no(name):
+    value = request.args.get(name, "").strip().lower()
+    if not value:
+        return None
+    if value not in ("yes", "no"):
+        raise InputError(f"'{name}' must be yes or no, but got '{value}'.")
+    return value == "yes"
+
+
+def parse_list_filters():
+    """Filters for the visit list only, on top of parse_filters(): host team,
+    pre-registered, signed out, and a search. The stats ignore these."""
+    team = request.args.get("team", "").strip()
+    host_team = next((t for t in db.host_teams if t.lower() == team.lower()), None)
+    if team and host_team is None:
+        raise InputError(f"'{team}' isn't a host team. Use one of: {', '.join(db.host_teams)}.")
+
+    return {
+        "host_team": host_team,
+        "pre_registered": parse_yes_no("pre_registered"),
+        "signed_out": parse_yes_no("signed_out"),
+        "search": request.args.get("q", "").strip() or None,
+    }
+
+
 def parse_page():
     value = request.args.get("page", "1").strip()
     if not value.isdigit() or int(value) < 1:
@@ -166,7 +191,12 @@ def me():
 
 @app.get("/api/visits")
 def list_visits():
-    filters = parse_filters()
+    # Check 2: search matches visitor names and emails, so a viewer could use
+    # it to find out whether someone visited ("any results for Jane Doe?").
+    if request.args.get("q", "").strip() and g.user["role"] != "admin":
+        return error(403, "Only admins can search visits.")
+
+    filters = {**parse_filters(), **parse_list_filters()}
     page = parse_page()
     result = db.list_visits(filters, g.user["role"], page)
     if page > result["total_pages"]:

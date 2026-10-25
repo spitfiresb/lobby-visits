@@ -10,11 +10,12 @@
 <main>
   <h1>Visits</h1>
 
-  <!-- A plain GET form: Apply reloads /visits with the filters in the URL. -->
+  <!-- A plain GET form: Apply reloads /visits with the filters in the URL.
+       The list's own filters (by the table) belong to this form too, via form="filters". -->
   <form id="filters" class="filters" method="get" action="/visits">
-    <label>From <input type="date" name="from"></label>
-    <label>To <input type="date" name="to"></label>
-    <label>Type
+    <div class="field">From <input type="date" name="from"></div>
+    <div class="field">To <input type="date" name="to"></div>
+    <div class="field">Type
       <select name="type">
         <option value="">All</option>
         <option value="guest">Guest</option>
@@ -22,7 +23,7 @@
         <option value="contractor">Contractor</option>
         <option value="vendor">Vendor</option>
       </select>
-    </label>
+    </div>
     <button>Apply</button>
     <a href="/visits">Clear</a>
   </form>
@@ -34,34 +35,73 @@
 
   <div id="results" hidden>
     <div class="headlines">
-      <div><b id="total"></b> visits</div>
-      <div><b id="busiest-day"></b> busiest day (average per day)</div>
-      <div><b id="busiest-hour"></b> busiest hour</div>
+      <div class="panel">Visits <b id="total"></b></div>
+      <div class="panel">Busiest day (average per day) <b id="busiest-day"></b></div>
+      <div class="panel">Busiest hour <b id="busiest-hour"></b></div>
     </div>
     <div class="two-col">
-      <div><h3>By day (average visits per day)</h3><table id="by-day"></table></div>
-      <div><h3>By hour</h3><table id="by-hour"></table></div>
+      <div class="panel"><h3>By day</h3><table id="by-day" class="bars"></table></div>
+      <div class="panel"><h3>By hour</h3><table id="by-hour" class="bars"></table></div>
     </div>
-    <table id="visits"></table>
-    <p id="pager"></p>
+
+    <div class="list-bar">
+      <input id="search" name="q" form="filters" type="search" placeholder="Search visitor, company or host" autocomplete="off" hidden>
+      <select name="team" form="filters">
+        <option value="">All teams</option>
+        <option>Engineering</option>
+        <option>Executive</option>
+        <option>Facilities</option>
+        <option>Finance</option>
+        <option>Legal</option>
+        <option>Marketing</option>
+        <option>Recruiting</option>
+        <option>Sales</option>
+      </select>
+      <select name="pre_registered" form="filters">
+        <option value="">All arrivals</option>
+        <option value="yes">Pre-registered</option>
+        <option value="no">Walk-ins</option>
+      </select>
+      <select name="signed_out" form="filters">
+        <option value="">Any sign-out</option>
+        <option value="yes">Signed out</option>
+        <option value="no">Didn't sign out</option>
+      </select>
+      <span id="list-count" class="muted"></span>
+    </div>
+    <div class="table panel"><table id="visits"></table></div>
+    <p id="pager" class="pager"></p>
   </div>
 </main>
 <script src="/static/app.js"></script>
+<script src="/static/pickers.js"></script>
 <script>
-  run(async () => {
-    const me = await signedIn();
-    const isAdmin = me.role === "admin";
-    const filters = new URLSearchParams(location.search);
+  // Only the list uses these. The stats above it ignore them.
+  const LIST_FILTERS = ["q", "team", "pre_registered", "signed_out"];
 
-    // Show the URL's filters in the form.
-    for (const name of ["from", "to", "type"]) {
-      el("filters").elements[name].value = filters.get(name) || "";
-    }
+  // Show the URL's filters in the form, then swap in our own pickers.
+  const form = el("filters");
+  const query = new URLSearchParams(location.search);
+  for (const control of form.elements) {
+    if (control.name) control.value = query.get(control.name) || "";
+  }
+  makeDatePicker(form.elements.from);
+  makeDatePicker(form.elements.to);
+  for (const name of ["type", "team", "pre_registered", "signed_out"]) {
+    makeDropdown(form.elements[name]);
+  }
+
+  let isAdmin = false;
+
+  run(async () => {
+    isAdmin = (await signedIn()).role === "admin";
+    // Search matches visitor names, so only admins get the box. The API
+    // refuses a viewer's search too.
+    el("search").hidden = !isAdmin;
 
     // The API takes the same query string as this page, so a pasted link
     // and a refresh both show exactly the same results.
     const stats = await api("/api/stats" + location.search);
-    const list = await api("/api/visits" + location.search);
 
     if (stats.missing_days.length > 0) {
       el("gap").textContent = "No data for " + stats.missing_days.map(formatDate).join(", ") +
@@ -69,7 +109,7 @@
       el("gap").hidden = false;
     }
 
-    if (list.total === 0) {
+    if (stats.total === 0) {
       // No recorded days at all means "we don't know", not "nobody came".
       el("empty").textContent = stats.days_counted === 0
         ? "No data was recorded for these dates."
@@ -90,47 +130,92 @@
     ]));
     el("by-hour").innerHTML = barRows(stats.by_hour.map((r) => [formatHour(r.hour), r.visits, r.visits]));
 
-    // The visit list. A viewer's rows have no visitor or host names in them,
-    // so their table shows "Visitor" and the host's team instead.
+    await loadList();
+    el("results").hidden = false;
+  });
+
+  // The list's filters apply as you change them: put them in the URL (so a
+  // refresh or a copied link shows the same list) and reload just the list.
+  function applyListFilters() {
+    const query = new URLSearchParams(location.search);
+    query.delete("page");  // new filters start from page 1
+    for (const name of LIST_FILTERS) {
+      const value = form.elements[name].value.trim();
+      value ? query.set(name, value) : query.delete(name);
+    }
+    history.replaceState(null, "", "/visits?" + query);
+    loadList().catch((e) => showError(e.message));
+  }
+
+  for (const name of ["team", "pre_registered", "signed_out"]) {
+    form.elements[name].onchange = applyListFilters;
+  }
+  let searchTimer;
+  el("search").oninput = () => {  // wait until typing pauses
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(applyListFilters, 250);
+  };
+
+  // The visit list. A viewer's rows have no visitor or host names in them,
+  // so their table shows "Visitor" and the host's team instead.
+  async function loadList() {
+    el("visits").classList.add("loading");
+    let list;
+    try {
+      list = await api("/api/visits" + location.search);
+    } finally {
+      el("visits").classList.remove("loading");
+    }
+    el("error").hidden = true;
+
+    el("list-count").textContent = list.total === 1 ? "1 visit" : `${list.total} visits`;
     const headings = isAdmin
       ? ["Date", "In", "Out", "Visitor", "Company", "Type", "Host", ""]
       : ["Date", "In", "Out", "Visitor", "Type", "Host team", ""];
+    const rows = list.visits.map((visit) => {
+      const signedOut = visit.signed_out_at
+        ? formatSignedOut(visit)
+        : `<span class="muted">${formatSignedOut(visit)}</span>`;
+      const cells = [formatDate(visit.visit_date), formatTime(visit.signed_in_at), signedOut];
+      if (isAdmin) {
+        cells.push(esc(visit.visitor_name), esc(visit.visitor_company), typeTag(visit),
+                   `${esc(visit.host_name)} <span class="muted">${esc(visit.host_team)}</span>`);
+      } else {
+        cells.push('<span class="muted">Visitor</span>', typeTag(visit), esc(visit.host_team));
+      }
+      // Carry the filters along so "back" returns to this same list.
+      cells.push(`<a href="/visits/${esc(visit.visit_id)}${esc(location.search)}">View</a>`);
+      return "<tr>" + cells.map((c) => `<td>${c}</td>`).join("") + "</tr>";
+    });
     el("visits").innerHTML =
       "<tr>" + headings.map((h) => `<th>${h}</th>`).join("") + "</tr>" +
-      list.visits.map((visit) => {
-        const cells = [formatDate(visit.visit_date), formatTime(visit.signed_in_at), formatSignedOut(visit)];
-        if (isAdmin) {
-          cells.push(esc(visit.visitor_name), esc(visit.visitor_company), capitalize(visit.visit_type),
-                     `${esc(visit.host_name)} (${esc(visit.host_team)})`);
-        } else {
-          cells.push('<span class="muted">Visitor</span>', capitalize(visit.visit_type), esc(visit.host_team));
-        }
-        // Carry the filters along so "back" returns to this same list.
-        cells.push(`<a href="/visits/${esc(visit.visit_id)}${esc(location.search)}">View</a>`);
-        return "<tr>" + cells.map((c) => `<td>${c}</td>`).join("") + "</tr>";
-      }).join("");
+      (rows.join("") || `<tr><td colspan="${headings.length}" class="muted">No visits match.</td></tr>`);
 
+    el("pager").hidden = list.total === 0;
     el("pager").innerHTML = [
-      list.page > 1 ? pageLink(filters, list.page - 1, "← Previous") : "",
+      list.page > 1 ? pageLink(list.page - 1, "← Previous") : "",
       `Page ${list.page} of ${list.total_pages}`,
-      list.page < list.total_pages ? pageLink(filters, list.page + 1, "Next →") : "",
+      list.page < list.total_pages ? pageLink(list.page + 1, "Next →") : "",
     ].join(" ");
-
-    el("results").hidden = false;
-  });
+  }
 
   // Table rows of [label, value, text to show], with a bar scaled to the biggest value.
   function barRows(rows) {
     const max = Math.max(...rows.map(([, value]) => value)) || 1;
     return rows.map(([label, value, text]) =>
       `<tr><td>${label}</td><td>${text}</td>` +
-      `<td><span class="bar" style="width:${Math.round(100 * value / max)}px"></span></td></tr>`
+      `<td><span class="bar" style="width:${Math.round(100 * value / max)}%"></span></td></tr>`
     ).join("");
   }
 
-  function pageLink(filters, page, label) {
-    filters.set("page", page);
-    return `<a href="/visits?${filters}">${label}</a>`;
+  function typeTag(visit) {
+    return `<span class="tag">${capitalize(visit.visit_type)}</span>`;
+  }
+
+  function pageLink(page, label) {
+    const query = new URLSearchParams(location.search);
+    query.set("page", page);
+    return `<a href="/visits?${query}">${label}</a>`;
   }
 </script>
 </body>
