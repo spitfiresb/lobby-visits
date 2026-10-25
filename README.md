@@ -62,11 +62,13 @@ This returns 115 visits, 50 per page. A viewer's rows don't contain the identity
 
 As the admin, the same rows also include `visitor_name`, `visitor_email`, `visitor_company`, `host_name` and `host_email`.
 
-**4. Check it yourself.** Search the viewer's raw response for a visitor's name. It prints `0`:
+**4. Check it yourself.** Search the viewer's raw response for the name of a visitor who is on that page. It prints `0`:
 
 ```bash
-curl -s -b cookies.txt "localhost:5000/api/visits?type=interview" | grep -c "Felix Fischer"
+curl -s -b cookies.txt "localhost:5000/api/visits?from=2026-08-01&to=2026-08-31&type=interview" | grep -c "Hannah Okafor"
 ```
+
+Signed in as the admin, the same command prints `1`.
 
 ## API
 
@@ -99,7 +101,7 @@ The busiest day is picked by average visits per recorded day, not by total. A fo
 
 | Status | When |
 |---|---|
-| 400 | Bad input: a malformed date, an end date before the start, an unknown type, a bad page |
+| 400 | Bad input: a malformed date, an end date before the start, an unknown type or team, a yes/no filter that isn't yes or no, a bad page |
 | 401 | Not signed in, or a wrong email or password |
 | 403 | A viewer on an admin-only endpoint or searching, or a signup from an email not on the allowlist |
 | 404 | An unknown visit or path |
@@ -133,4 +135,6 @@ static/           The pages, plus shared app.js (API calls, nav, escaping),
                   pickers.js (filter dropdowns and calendar) and style.css.
 visits.csv        Three months of lobby sign-ins. Never modified; cleaned on load.
 allowed_users.csv The 8 people who may use the app, and their roles.
+requirements.txt  flask, the only dependency.
+ARCHITECTURE.md   How the pieces fit together, and why.
 ```
