@@ -4,3 +4,6 @@
 /*.html
 .claude/
 __pycache__/
+
+# Local test suite
+/tests/
