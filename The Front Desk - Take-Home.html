@@ -1,0 +1,345 @@
+<title>The Front Desk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&display=swap">
+<style>
+/* ── Envoy Design Tokens ── */
+:root{
+	--white:#ffffff;--carbon-5:#f6f6f9;--carbon-10:#ebebf0;--carbon-20:#c9cbd4;--carbon-30:#a4a9b6;
+	--carbon-40:#8a8f9e;--carbon-50:#717684;--carbon-70:#3f4450;--carbon-80:#303541;--carbon-90:#1f232d;
+	--gem-5:#f0f4ff;--gem-10:#e0e8ff;--gem-60:#4e4eda;--gem-70:#4141a2;
+	--red-10:#ffe0de;--red-50:#e91c1c;--red-60:#c70a14;
+	--cilantro-10:#c7f5d2;--cilantro-40:#21944e;--cilantro-60:#017939;
+	--papaya-10:#ffe7bd;--papaya-60:#a84f00;
+
+	--background:var(--white);--foreground:var(--carbon-70);--card:var(--white);--subtle:var(--carbon-5);
+	--muted-foreground:var(--carbon-50);--primary:var(--gem-60);--primary-foreground:var(--white);
+	--brand:var(--red-50);--link:var(--gem-60);--ring:var(--carbon-40);
+	--success-foreground:var(--cilantro-60);--warning:var(--papaya-10);--warning-foreground:var(--papaya-60);
+	--danger-foreground:var(--red-60);
+
+	--radius-sm:2px;--radius-md:4px;--radius-lg:6px;
+	--shadow-sm:0 1px 2px 0 rgb(0 0 0 / .05);
+	--shadow-md:0 1px 3px 0 rgb(0 0 0 / .1),0 1px 2px -1px rgb(0 0 0 / .1);
+
+	--sans:'Sofia Pro',Arial,sans-serif;
+	--mono:'Geist Mono',ui-monospace,Menlo,monospace;
+	--measure:66ch;--pad:clamp(20px,5vw,56px);
+	color-scheme:light;
+}
+
+*{box-sizing:border-box}
+body{background:var(--background);color:var(--foreground);font-family:var(--sans);font-size:16.5px;line-height:1.62;margin:0;-webkit-font-smoothing:antialiased}
+.wrap{max-width:780px;margin:0 auto;padding:0 var(--pad)}
+
+h1,h2,h3,h4{margin:0;color:var(--carbon-90);letter-spacing:-.01em;font-weight:700;text-wrap:balance}
+h1{font-size:clamp(32px,5.4vw,44px);line-height:1.06;letter-spacing:-.022em}
+h2{font-size:21px;line-height:1.2}
+h3{font-size:16.5px;line-height:1.3}
+p{margin:0;max-width:var(--measure)}
+a{color:var(--link);text-underline-offset:3px}
+a:focus-visible{outline:2px solid var(--ring);outline-offset:3px;border-radius:var(--radius-sm)}
+strong{font-weight:600;color:var(--carbon-80)}
+em{font-style:italic}
+code{font-family:var(--mono);font-size:.85em;letter-spacing:.02em;background:var(--gem-5);color:var(--gem-70);padding:.12em .4em;border-radius:var(--radius-sm)}
+
+.overline{font-family:var(--mono);font-size:.6875rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--primary)}
+.lede{font-size:18.5px;line-height:1.55;color:var(--muted-foreground);max-width:56ch}
+
+.band{background:var(--subtle);border-bottom:1px solid var(--carbon-10);padding:clamp(40px,7vw,68px) 0 0}
+.band .rule{height:3px;background:var(--brand);width:44px;border-radius:var(--radius-sm);margin-bottom:20px}
+.band .overline{display:block;margin-bottom:12px}
+.band h1{margin-bottom:16px}
+.band .lede{margin-bottom:28px}
+.vitals{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));background:var(--card);border:1px solid var(--carbon-10);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-sm);transform:translateY(22px)}
+.vital{padding:13px 16px;display:flex;flex-direction:column;gap:3px;border-right:1px solid var(--carbon-10)}
+.vital:last-child{border-right:none}
+.vital dt{font-family:var(--mono);font-size:.6875rem;letter-spacing:.04em;text-transform:uppercase;color:var(--muted-foreground)}
+.vital dd{margin:0;font-weight:600;font-size:15px;line-height:1.3;color:var(--carbon-90)}
+
+section{padding-top:46px}
+#situation{padding-top:56px}
+.sechead{display:flex;align-items:baseline;gap:13px;margin-bottom:20px;padding-bottom:10px;border-bottom:1px solid var(--carbon-10)}
+.sechead .n{font-family:var(--mono);font-size:.75rem;font-weight:600;color:var(--primary);letter-spacing:.04em}
+.stack{display:flex;flex-direction:column;gap:15px}
+.note{background:var(--subtle);border-radius:var(--radius-lg);padding:14px 18px;color:var(--muted-foreground);max-width:var(--measure)}
+.note strong{color:var(--carbon-80)}
+
+.quote{background:var(--card);border:1px solid var(--carbon-10);border-left:3px solid var(--primary);border-radius:var(--radius-lg);padding:20px 22px;display:flex;flex-direction:column;gap:11px;box-shadow:var(--shadow-md)}
+.quote .sig{font-family:var(--mono);font-size:.75rem;color:var(--muted-foreground);letter-spacing:.02em}
+
+.ships{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.ship{background:var(--card);border:1px solid var(--carbon-10);border-radius:var(--radius-lg);padding:18px;display:flex;flex-direction:column;gap:7px;box-shadow:var(--shadow-sm)}
+.ship .tag{font-family:var(--mono);font-size:.6875rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--primary)}
+.ship p{font-size:14.5px;line-height:1.52;color:var(--muted-foreground)}
+
+.tablewrap{overflow-x:auto;border:1px solid var(--carbon-10);border-radius:var(--radius-lg);background:var(--card)}
+table{border-collapse:collapse;width:100%;min-width:520px;font-size:14px}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--carbon-10);vertical-align:top}
+thead th{font-family:var(--mono);font-size:.6875rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted-foreground);background:var(--subtle);white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+td.k{font-family:var(--mono);font-size:12.5px;letter-spacing:.02em;color:var(--carbon-80);white-space:nowrap}
+
+ul.dash{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:9px;max-width:var(--measure)}
+ul.dash li{padding-left:24px;position:relative;font-size:15.5px}
+ul.dash li::before{content:"";position:absolute;left:2px;top:.62em;width:9px;height:1px;background:var(--carbon-30)}
+ul.dash li.yes::before{content:"\2713";background:none;left:0;top:0;width:auto;height:auto;color:var(--success-foreground);font-size:13px}
+ul.dash li.no::before{content:"\2715";background:none;left:0;top:0;width:auto;height:auto;color:var(--danger-foreground);font-size:12px}
+
+.qline{display:grid;grid-template-columns:24px 1fr;gap:14px;padding:14px 0;border-bottom:1px solid var(--carbon-10);align-items:start}
+.qline:last-child{border-bottom:none}
+.qline .n{font-family:var(--mono);font-size:.75rem;font-weight:600;color:var(--primary-foreground);background:var(--primary);border-radius:var(--radius-sm);width:22px;height:22px;display:grid;place-items:center;margin-top:2px}
+.qline h3{margin-bottom:4px}
+.qline p{font-size:15px;color:var(--muted-foreground)}
+
+.split{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+.panel{background:var(--card);border:1px solid var(--carbon-10);border-radius:var(--radius-lg);padding:18px;display:flex;flex-direction:column;gap:11px;box-shadow:var(--shadow-sm)}
+.panel h4{margin:0;font-family:var(--mono);font-size:.6875rem;letter-spacing:.04em;text-transform:uppercase;color:var(--muted-foreground);font-weight:600}
+.panel.ok{border-top:3px solid var(--cilantro-40)}
+.panel.nope{border-top:3px solid var(--brand)}
+
+footer{margin-top:50px;background:var(--subtle);border-top:1px solid var(--carbon-10)}
+footer .inner{max-width:780px;margin:0 auto;padding:18px var(--pad) 26px;display:flex;flex-wrap:wrap;gap:8px 22px;justify-content:space-between;font-family:var(--mono);font-size:.6875rem;letter-spacing:.04em;color:var(--muted-foreground)}
+
+@media (max-width:560px){.vital{border-right:none;border-bottom:1px solid var(--carbon-10)}.vital:last-child{border-bottom:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="band">
+	<div class="wrap">
+		<div class="rule"></div>
+		<span class="overline">Solutions Engineering Intern · Take-home</span>
+		<h1>The Front Desk</h1>
+		<p class="lede">A small web app for a customer's workplace team. It shows who's visiting the building — which is exactly why not everyone is allowed to open it, and why the rules have to live on the server rather than in the page.</p>
+		<dl class="vitals">
+			<div class="vital"><dt>Time</dt><dd>3 hours, max</dd></div>
+			<div class="vital"><dt>Due</dt><dd>Within 3 days</dd></div>
+			<div class="vital"><dt>You build</dt><dd>An API + 4 pages</dd></div>
+			<div class="vital"><dt>AI tools</dt><dd>Yes, please</dd></div>
+		</dl>
+	</div>
+</div>
+
+<div class="wrap">
+
+<section id="situation">
+	<div class="sechead"><span class="n">01</span><h2>The situation</h2></div>
+	<div class="stack">
+		<p>Brightline is a customer of ours. One office, about 70 people who host visitors, and a lobby iPad where guests sign in. Dana's team of three wants a small internal app for it.</p>
+		<div class="quote">
+			<p>I want to look up who came in last Tuesday, and see when the lobby actually gets busy, without exporting anything.</p>
+			<p>The catch is that this is a list of real people's names and email addresses, so legal only signed off if access is properly restricted. Three of us should see names. A few others should see how busy we are without seeing who anyone is. Nobody else gets in at all.</p>
+			<p class="sig">Dana · Workplace Manager, Brightline</p>
+		</div>
+		<p>The access rules aren't a feature Dana would trade for a nicer chart. They're the condition on which this app is allowed to exist, so that's where most of your three hours should go.</p>
+	</div>
+</section>
+
+<section id="data">
+	<div class="sechead"><span class="n">02</span><h2>The two files</h2></div>
+	<div class="stack">
+		<p><strong>Both are attached to your email thread.</strong> Nothing to install, nothing to generate.</p>
+		<div class="tablewrap">
+			<table>
+				<thead><tr><th>File</th><th>What's in it</th></tr></thead>
+				<tbody>
+					<tr><td class="k">visits.csv</td><td>2,011 rows — three months of lobby sign-ins, one row per visit.<span style="display:block;color:var(--muted-foreground);font-size:13px;margin-top:4px">visit_id, visit_date, signed_in_at, signed_out_at, visitor_name, visitor_email, visitor_company, visit_type, host_name, host_email, host_team, pre_registered</span></td></tr>
+					<tr><td class="k">allowed_users.csv</td><td>8 rows — the only people allowed to use the app, and what each may see.<span style="display:block;color:var(--muted-foreground);font-size:13px;margin-top:4px">email, name, role — where role is <code>admin</code> or <code>viewer</code></span></td></tr>
+				</tbody>
+			</table>
+		</div>
+		<p class="note"><strong>Open both files before you write anything.</strong> Real customer exports always contain something that makes a naive answer wrong, and these two are no exception — one problem is in the visit data, one is in the user list. Fifteen minutes of looking is the best-spent time in this exercise.</p>
+	</div>
+</section>
+
+<section id="access">
+	<div class="sechead"><span class="n">03</span><h2>Who gets in</h2></div>
+	<div class="stack">
+		<div class="tablewrap">
+			<table style="min-width:540px">
+				<thead><tr><th>#</th><th>Requirement</th></tr></thead>
+				<tbody>
+					<tr><td class="k">1</td><td><strong>A sign-up and a sign-in page.</strong> People create their own account; nobody is pre-registered for them.</td></tr>
+					<tr><td class="k">2</td><td><strong>Only emails in <code>allowed_users.csv</code> may sign up.</strong> Anyone else is refused clearly — not a crash, not a blank page, not a silent failure.</td></tr>
+					<tr><td class="k">3</td><td><strong>Match an email the way a person would expect.</strong> The list is a real export and it is untidy. If a legitimate colleague is locked out by a capital letter, you've shipped a bug.</td></tr>
+					<tr><td class="k">4</td><td><strong>Decide what a refused person is told,</strong> and say why in your note. "Your email isn't on the list" is friendly and confirms to a stranger who works there. "We'll be in touch if you're eligible" is cagey and annoying for a colleague who mistyped. Pick one and defend it.</td></tr>
+					<tr><td class="k">5</td><td><strong>Leave us a way in.</strong> Working test credentials for one admin and one viewer, in your README. If we can't log in, we can't review it.</td></tr>
+				</tbody>
+			</table>
+		</div>
+		<p class="note"><strong>This is a prototype, not production.</strong> Store accounts however you like — a file, browser storage, SQLite. We are not grading your cryptography. We do want two honest sentences in your note: what's fake here, and what you'd do differently with real visitors' data behind it.</p>
+	</div>
+</section>
+
+<section id="roles">
+	<div class="sechead"><span class="n">04</span><h2>Two kinds of user</h2></div>
+	<div class="stack">
+		<p>Getting someone through the door is authentication. Deciding what they see once inside is the harder half, and it's where most people lose points.</p>
+		<div class="split">
+			<div class="panel ok">
+				<h4>admin — 3 people</h4>
+				<p style="font-size:15px;color:var(--muted-foreground)">Sees everything: visitor names, email addresses, the company they came from, who hosted them.</p>
+			</div>
+			<div class="panel nope">
+				<h4>viewer — 5 people</h4>
+				<p style="font-size:15px;color:var(--muted-foreground)">Sees how busy the building is — counts, dates, host teams, visit types. <strong>Never a visitor's name or email.</strong></p>
+			</div>
+		</div>
+		<p><strong>A viewer must not be able to reach a name by any route you leave open.</strong> Not by editing the URL, not through a filter, and not by opening the network tab. Hiding a column while the data is still in the response doesn't count — that's the most common way this gets faked, and it's the first thing we check.</p>
+		<p class="note">There's a design decision hiding here: what does a viewer see where a name would be? A dash, "Visitor", an initial, a number? Make a choice that leaves the page useful, and mention it in your note.</p>
+	</div>
+</section>
+
+<section id="api">
+	<div class="sechead"><span class="n">05</span><h2>The API</h2></div>
+	<div class="stack">
+		<p>The pages don't read the CSV. They call a small HTTP API that you write, and that API is where the access rules actually live. It all runs on your machine — <strong>no AWS, no cloud account, no deployment.</strong> Load the two CSVs at startup into SQLite, a JSON file, or just a list in memory. Any language, any framework.</p>
+		<div class="tablewrap">
+			<table style="min-width:520px">
+				<thead><tr><th>Endpoint</th><th>Does</th></tr></thead>
+				<tbody>
+					<tr><td class="k">POST /auth/signup</td><td>Creates an account, if that email is on the allowed list.</td></tr>
+					<tr><td class="k">POST /auth/login</td><td>Starts a session — token or cookie, your call.</td></tr>
+					<tr><td class="k">GET /api/me</td><td>Who am I and what am I allowed to see.</td></tr>
+					<tr><td class="k">GET /api/visits</td><td>The visit rows, filterable by date range and visit type, capped or paged.</td></tr>
+					<tr><td class="k">GET /api/visits/:id</td><td>One visit.</td></tr>
+					<tr><td class="k">GET /api/stats</td><td>The counts behind the summary — by day of week and by hour.</td></tr>
+				</tbody>
+			</table>
+		</div>
+		<p>Those paths are a suggestion, not a spec. Name them how you like; just document what you built.</p>
+		<h3 style="margin-top:8px">Five rules for it</h3>
+		<ul class="dash">
+			<li><strong>Nothing returns data without a valid session.</strong> An unauthenticated call gets a <code>401</code> — a JSON error, not a redirect to HTML.</li>
+			<li><strong>The roles are enforced in the API, not the interface.</strong> A viewer's response must not contain a name or email anywhere in the payload. Not hidden, not nulled under another key — absent.</li>
+			<li><strong>Filtering and counting happen server-side.</strong> Sending all 2,011 rows to the browser and filtering there is the thing this rule exists to rule out.</li>
+			<li><strong>Bad input gets a <code>400</code> with a message a human can act on</strong> — an end date before the start date, a nonsense visit type. Never a <code>500</code>, never an empty 200.</li>
+			<li><strong>It works from curl.</strong> Two worked examples in your README: logging in, and a filtered visits call.</li>
+		</ul>
+		<p class="note"><strong>How we'll test it.</strong> We'll log in as your viewer account with curl, call the visits endpoint, and search the raw response for a visitor's name. That's the whole test, it takes fifteen seconds, and it's the most informative thing we do with your submission. Run it on yourself first.</p>
+	</div>
+</section>
+
+<section id="pages">
+	<div class="sechead"><span class="n">06</span><h2>The pages</h2></div>
+	<div class="stack">
+		<p>Four pages and a 404 — a small app, not one dashboard. Build it with a router, hash routes, or separate HTML files served by your API. We don't care which, only that the behaviour below holds.</p>
+		<div class="tablewrap">
+			<table style="min-width:540px">
+				<thead><tr><th>Page</th><th>Who</th><th>What's on it</th></tr></thead>
+				<tbody>
+					<tr><td class="k">/login<br>/signup</td><td class="k">anyone</td><td>Sign in, or create an account if you're on the allowed list.</td></tr>
+					<tr><td class="k">/visits</td><td class="k">both</td><td>Where you land after signing in. The list, with filters for date range and visit type, and a few headline numbers above it — including <strong>when the lobby is busiest, by day and by hour.</strong> That's the question Dana actually has.</td></tr>
+					<tr><td class="k">/visits/:id</td><td class="k">both</td><td>One visit on its own page. An admin sees the person; a viewer sees the shape of the visit and no identity.</td></tr>
+					<tr><td class="k">/admin/users</td><td class="k">admin only</td><td>The allowed list, and which of those people have actually signed up.</td></tr>
+					<tr><td class="k">anything else</td><td class="k">—</td><td>A real "page not found", not a blank screen.</td></tr>
+				</tbody>
+			</table>
+		</div>
+		<h3 style="margin-top:8px">Five rules for it</h3>
+		<ul class="dash">
+			<li><strong>Every page has its own address.</strong> Refresh on any of them — including a single visit — and you're still there and still signed in.</li>
+			<li><strong>Filters live in the URL.</strong> Dana filters to interviews in August, pastes the link to a colleague, and it opens already filtered. If that state only exists in memory, the link is useless and so is the feature.</li>
+			<li><strong>Not signed in?</strong> You're sent to the login page, and afterwards you land on the page you were trying to reach — not back at the start.</li>
+			<li><strong>Signed in but not allowed?</strong> A clean "you don't have access" page. Not a blank screen, not a redirect loop, not a crash. And the navigation doesn't offer a viewer a link that bounces them.</li>
+			<li><strong>Loading and empty states that tell the truth,</strong> including about a period where the data can't be relied on. Plain words — no <code>signed_out_at</code> on screen.</li>
+		</ul>
+		<p class="note"><strong>Worth being clear about:</strong> a route guard is a courtesy for the user, not a security control. Hiding <code>/admin/users</code> from the nav while your API will still answer a viewer's request for it is exactly the gap we're looking for. Both should exist, and you should be able to say which one is doing the real work.</p>
+		<div class="split">
+			<div class="panel ok">
+				<h4>Fine, and encouraged</h4>
+				<ul class="dash">
+					<li class="yes">Any framework, or none. A router, hash routing, or plain separate pages.</li>
+					<li class="yes">Generating most of the UI with an AI tool.</li>
+					<li class="yes">A plain table instead of a chart. Charts are optional here.</li>
+					<li class="yes">Serving the pages from your API — one process is fine.</li>
+				</ul>
+			</div>
+			<div class="panel nope">
+				<h4>Not needed — skip it</h4>
+				<ul class="dash">
+					<li class="no">AWS or any cloud account. Lambda, S3, Cognito, RDS — none of it. Localhost only.</li>
+					<li class="no">Password reset, 2FA, SSO, OAuth, real emails.</li>
+					<li class="no">Docker, HTTPS, rate limiting, refresh tokens, a production database.</li>
+					<li class="no">A mobile layout, dark mode, animation, visual polish.</li>
+				</ul>
+			</div>
+		</div>
+	</div>
+</section>
+
+<section id="send">
+	<div class="sechead"><span class="n">07</span><h2>What to send us</h2></div>
+	<div class="stack">
+		<div class="ships">
+			<div class="ship"><span class="tag">One</span><h3>The app</h3><p>Pages and API in one repo, started from your README. <strong>Include the two test logins and the two curl examples.</strong></p></div>
+			<div class="ship"><span class="tag">Two</span><h3>A short note to Dana</h3><p>What you found in the data, what you decided about access and why, what's fake, and what you'd do next. Written to her, not to us.</p></div>
+		</div>
+		<div class="tablewrap" style="margin-top:2px">
+			<table style="min-width:420px">
+				<thead><tr><th>Roughly</th><th>Spend it on</th></tr></thead>
+				<tbody>
+					<tr><td class="k">0:00 – 0:15</td><td>Open both files. Find what's wrong with each.</td></tr>
+					<tr><td class="k">0:15 – 1:00</td><td>The API: load the data, signup with the allowlist check, login, <code>/api/me</code>.</td></tr>
+					<tr><td class="k">1:00 – 1:40</td><td>The data endpoints, filtered and role-aware. Curl them before any page exists.</td></tr>
+					<tr><td class="k">1:40 – 2:30</td><td>The pages: shell and nav, guards, the list, the detail, admin users, the 404.</td></tr>
+					<tr><td class="k">2:30 – 2:45</td><td>Break your own rules. Curl as the viewer. Paste URLs you shouldn't reach. Refresh everywhere.</td></tr>
+					<tr><td class="k">2:45 – 3:00</td><td>Write the note.</td></tr>
+				</tbody>
+			</table>
+		</div>
+		<p class="note">Three hours is a ceiling, not a target, and we'd rather you hit it than overshoot. <strong>If you're running short, drop pages before you drop the API or the roles</strong> — <code>/admin/users</code> is the first to lose, the visit detail page is the second. A correct API with two plain pages on top beats a pretty app anyone can walk into. Say what you dropped and what you'd do next; that's a good answer, not a bad one.</p>
+	</div>
+</section>
+
+<section id="done">
+	<div class="sechead"><span class="n">08</span><h2>You're done when</h2></div>
+	<div class="stack">
+		<ul class="dash">
+			<li class="yes">We can log in as both an admin and a viewer using only your README.</li>
+			<li class="yes">Every person on the list can sign up, and nobody else can.</li>
+			<li class="yes">You curled your own API as the viewer, searched the response for a visitor's name, and found nothing.</li>
+			<li class="yes">An unauthenticated call returns 401, and a bad date range returns 400 with a useful message.</li>
+			<li class="yes">You can refresh on every page, including a single visit, and stay exactly where you were.</li>
+			<li class="yes">A filtered list pasted to someone else opens filtered.</li>
+			<li class="yes">A viewer typing <code>/admin/users</code> gets a clean refusal — and the API refuses them too.</li>
+			<li class="yes">Your note covers the data problems you found and what's fake about the login.</li>
+		</ul>
+	</div>
+</section>
+
+<section id="rules">
+	<div class="sechead"><span class="n">09</span><h2>Rules and scoring</h2></div>
+	<div class="stack">
+		<div class="tablewrap">
+			<table style="min-width:440px">
+				<thead><tr><th>We're looking at</th><th>Which means</th></tr></thead>
+				<tbody>
+					<tr><td class="k">Access control</td><td>The right people get in, the wrong ones don't, and the rules are enforced in the API — so a viewer can't reach a name by any route, including curl.</td></tr>
+					<tr><td class="k">API design</td><td>Endpoints a stranger could use from your README alone. Sensible status codes, real validation, filtering done server-side.</td></tr>
+					<tr><td class="k">The app</td><td>URLs behave the way URLs should — refresh, back, and paste to a colleague. The important thing is the obvious thing on the page.</td></tr>
+					<tr><td class="k">Reading the data</td><td>You found both problems in the files before they silently broke one of your numbers.</td></tr>
+					<tr><td class="k">Explaining it</td><td>Your note is in Dana's language, your access decisions have reasons, and you can talk us through your own code.</td></tr>
+				</tbody>
+			</table>
+		</div>
+		<p class="note">We don't score test coverage, architecture, framework choice, or how pretty it is. We do read your code — together, on the call — and if an AI wrote a file, that's expected. Being unable to explain it isn't.</p>
+		<ul class="dash">
+			<li class="no">Don't put real credentials or secrets in the repo. Test logins for this exercise are fine and expected.</li>
+			<li class="no">Don't hand in something you can't explain.</li>
+			<li class="no">Don't spend eight hours on a three-hour exercise. We can tell, and it doesn't help you.</li>
+			<li class="yes">Do email us questions. We reply as Dana, and asking counts in your favour — especially on day one.</li>
+		</ul>
+		<p><strong>Sending it.</strong> Reply to this thread with a repo link, or a zip if that's easier.</p>
+		<p><strong>Then the onsite.</strong> If your submission moves forward, the next step is the onsite interview — no separate screening call in between. You'll walk us through what you built, driving the app live (including signing in as a viewer), and we'll read some of your code together. Bring questions for us; that part isn't filler.</p>
+	</div>
+</section>
+
+</div>
+
+<footer>
+	<div class="inner">
+		<span>Brightline is fictional. Every visitor, host and email address in these files is invented.</span>
+		<span>Solutions Engineering intern take-home</span>
+	</div>
+</footer>
