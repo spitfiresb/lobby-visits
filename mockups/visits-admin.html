@@ -1,0 +1,99 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Visits</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav>
+  <a class="brand" href="index.html">The Front Desk</a>
+  <a href="visits-admin.html">Visits</a>
+  <a href="admin-users.html">Users</a>  <!-- admins only -->
+  <span class="who">Dana Whitfield (admin) · <a href="login.html">Sign out</a></span>
+</nav>
+<main>
+  <h1>Visits</h1>
+
+  <!-- A plain GET form: submitting it reloads /visits with the filters in the query string. -->
+  <form class="filters">
+    <label>From <input type="date" value="2026-08-01"></label>
+    <label>To <input type="date" value="2026-08-31"></label>
+    <label>Visit type
+      <select>
+        <option>All types</option><option>Guest</option><option>Interview</option>
+        <option>Contractor</option><option>Vendor</option>
+      </select>
+    </label>
+    <button type="button">Apply</button>
+    <a href="visits-admin.html">Clear</a>
+  </form>
+
+  <!-- Shown only when the chosen range overlaps the days with no data. -->
+  <p class="warning">The lobby iPad recorded nothing on Mon 10 to Thu 13 August.
+    Numbers for this range are missing those 4 days, so Monday to Thursday will look quieter than they were.</p>
+
+  <div class="headlines">
+    <div><b>494</b> visits in this range</div>
+    <div><b>Wednesday</b> busiest day</div>
+    <div><b>9–10am</b> busiest hour</div>
+  </div>
+
+  <div class="two-col">
+    <div>
+      <h3>By day of week</h3>
+      <table>
+        <tr><td>Monday</td><td>97</td><td><span class="bar" style="width:87px"></span></td></tr>
+        <tr><td>Tuesday</td><td>109</td><td><span class="bar" style="width:97px"></span></td></tr>
+        <tr><td>Wednesday</td><td>112</td><td><span class="bar" style="width:100px"></span></td></tr>
+        <tr><td>Thursday</td><td>95</td><td><span class="bar" style="width:85px"></span></td></tr>
+        <tr><td>Friday</td><td>81</td><td><span class="bar" style="width:72px"></span></td></tr>
+      </table>
+    </div>
+    <div>
+      <h3>By hour signed in</h3>
+      <table>
+        <tr><td>9am</td><td>182</td><td><span class="bar" style="width:100px"></span></td></tr>
+        <tr><td>10am</td><td>58</td><td><span class="bar" style="width:32px"></span></td></tr>
+        <tr><td>11am</td><td>73</td><td><span class="bar" style="width:40px"></span></td></tr>
+        <tr><td>1pm</td><td>61</td><td><span class="bar" style="width:34px"></span></td></tr>
+        <tr><td>2pm</td><td>66</td><td><span class="bar" style="width:36px"></span></td></tr>
+        <tr><td>3pm</td><td>54</td><td><span class="bar" style="width:30px"></span></td></tr>
+      </table>
+    </div>
+  </div>
+
+  <h3>All visits, newest first</h3>
+  <table>
+    <tr><th>Date</th><th>Signed in</th><th>Signed out</th><th>Visitor</th><th>Company</th><th>Type</th><th>Host</th><th></th></tr>
+    <tr><td>Mon 31 Aug</td><td>9:53am</td><td class="muted">Didn't sign out</td><td>Clara Ferreira</td><td>Pacific Freight</td><td>Interview</td><td>Kenji Osei (Facilities)</td><td><a href="visit-admin.html">View</a></td></tr>
+    <tr><td>Mon 31 Aug</td><td>9:30am</td><td class="muted">Didn't sign out</td><td>Hannah Okafor</td><td>Northwind Bio</td><td>Interview</td><td>Noah Castellanos (Recruiting)</td><td><a href="visit-admin.html">View</a></td></tr>
+    <tr><td>Mon 31 Aug</td><td>9:27am</td><td class="muted">Didn't sign out</td><td>Diego Fischer</td><td>Marlowe &amp; Finch</td><td>Interview</td><td>Henrik Vitale (Recruiting)</td><td><a href="visit-admin.html">View</a></td></tr>
+    <tr><td>Mon 31 Aug</td><td>9:26am</td><td>10:19am</td><td>Noah Novak</td><td>Corvid Pay</td><td>Interview</td><td>Diego Whitfield (Engineering)</td><td><a href="visit-admin.html">View</a></td></tr>
+    <tr><td>Mon 31 Aug</td><td>9:17am</td><td>11:00am</td><td>Jonas Castellanos</td><td>Brightline Capital</td><td>Interview</td><td>Victor Oyelaran (Legal)</td><td><a href="visit-admin.html">View</a></td></tr>
+  </table>
+  <p>Page 1 of 10 · <a href="#">Next page</a></p>
+
+  <!-- Other states the real page needs:
+       loading:  "Loading visits…"
+       empty:    "No visits match these filters." (a 200 with total 0)
+       400:      the API's error message in a red box, e.g. "The end date is before the start date…" -->
+
+  <div class="wiring">
+    <h3>How this connects</h3>
+    <ul>
+      <li>Real page: <code>static/visits.html</code> at <code>/visits?from=2026-08-01&amp;to=2026-08-31&amp;page=1</code>. The filters are in the URL, so refresh and shared links keep them.</li>
+      <li>On load, <code>app.js</code> makes three calls:
+        <ol>
+          <li><code>GET /api/me</code>: 401 sends you to <code>/login?next=…</code>. The role decides whether the nav shows "Users".</li>
+          <li><code>GET /api/stats?from=…&amp;to=…</code> fills the headline numbers and the two tables.</li>
+          <li><code>GET /api/visits?from=…&amp;to=…&amp;page=1</code> fills the list (50 rows per page). The total and page count come from the server.</li>
+        </ol>
+      </li>
+      <li>The page builds the API URLs by copying its own query string, so the page and the API always agree on the filters.</li>
+      <li>The outage warning appears when the range includes 10–13 Aug (<code>db.missing_days</code>, which the stats response would need to include).</li>
+    </ul>
+  </div>
+</main>
+</body>
+</html>

@@ -1,3 +1,5 @@
-# Local Claude notes, not part of the submission
-CLAUDE.md
+# Local notes, not part of the submission
+*.md
+!README.md
 .claude/
+__pycache__/

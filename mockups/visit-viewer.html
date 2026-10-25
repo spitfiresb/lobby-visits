@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Visit V001219</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav>
+  <a class="brand" href="index.html">The Front Desk</a>
+  <a href="visits-viewer.html">Visits</a>
+  <span class="who">Sam Ferreira (viewer) · <a href="login.html">Sign out</a></span>
+</nav>
+<main>
+  <p><a href="visits-viewer.html">← Back to visits</a></p>
+  <!-- In place of the name: the visit's "shape". Placeholder wording TBD. -->
+  <h1>Interview visit</h1>
+  <p class="muted">Visitor details are only shown to admins.</p>
+
+  <dl>
+    <dt>Visit type</dt>     <dd>Interview</dd>
+    <dt>Date</dt>           <dd>Monday 31 August 2026</dd>
+    <dt>Signed in</dt>      <dd>9:26am</dd>
+    <dt>Signed out</dt>     <dd>10:19am (53 minutes)</dd>
+    <dt>Host team</dt>      <dd>Engineering</dd>
+    <dt>Pre-registered</dt> <dd>Yes</dd>
+    <dt>Visit ID</dt>       <dd>V001219</dd>
+  </dl>
+
+  <div class="wiring">
+    <h3>How this connects</h3>
+    <ul>
+      <li>Same page file and same calls as the admin version: <code>GET /api/me</code> and <code>GET /api/visits/V001219</code>.</li>
+      <li>The viewer response has only <code>visit_id, visit_date, signed_in_at, signed_out_at, visit_type, host_team, pre_registered</code>.</li>
+      <li>The page shows a row only when the field exists in the response. Nothing is hidden with CSS, because there's nothing to hide.</li>
+    </ul>
+  </div>
+</main>
+</body>
+</html>

@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Visit V001219</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav>
+  <a class="brand" href="index.html">The Front Desk</a>
+  <a href="visits-admin.html">Visits</a>
+  <a href="admin-users.html">Users</a>
+  <span class="who">Dana Whitfield (admin) · <a href="login.html">Sign out</a></span>
+</nav>
+<main>
+  <p><a href="visits-admin.html">← Back to visits</a></p>
+  <h1>Noah Novak</h1>
+
+  <dl>
+    <dt>Email</dt>          <dd>nnovak@corvidpay.example</dd>
+    <dt>Company</dt>        <dd>Corvid Pay</dd>
+    <dt>Visit type</dt>     <dd>Interview</dd>
+    <dt>Date</dt>           <dd>Monday 31 August 2026</dd>
+    <dt>Signed in</dt>      <dd>9:26am</dd>
+    <dt>Signed out</dt>     <dd>10:19am (53 minutes)</dd>
+    <dt>Host</dt>           <dd>Diego Whitfield, diego.whitfield@brightline.example</dd>
+    <dt>Host team</dt>      <dd>Engineering</dd>
+    <dt>Pre-registered</dt> <dd>Yes</dd>
+    <dt>Visit ID</dt>       <dd>V001219</dd>
+  </dl>
+
+  <!-- Unknown ID state: the API returns 404 and the page shows
+       "There's no visit with ID 'V999999'." with a link back to /visits. -->
+
+  <div class="wiring">
+    <h3>How this connects</h3>
+    <ul>
+      <li>Real page: <code>static/visit.html</code> at <code>/visits/V001219</code>. Flask serves the same file for any ID, so a refresh works.</li>
+      <li><code>app.js</code> reads the ID from the URL path, then calls <code>GET /api/me</code> and <code>GET /api/visits/V001219</code>.</li>
+      <li>The admin response includes <code>visitor_name</code>, <code>visitor_email</code>, <code>visitor_company</code>, <code>host_name</code> and <code>host_email</code>.</li>
+      <li>"Back to visits" should go back to the filtered list you came from. The simplest way is to pass the list's query string along on the "View" links.</li>
+    </ul>
+  </div>
+</main>
+</body>
+</html>
