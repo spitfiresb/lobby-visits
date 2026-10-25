@@ -124,7 +124,7 @@ Signup and login accept JSON (curl, `fetch`) or a plain form post. Every error, 
   - A 401 sends you to `/login?next=<this page>`, and you return there after signing in. `nextPage()` resolves `next` with the browser's URL parser and only follows it if it stays on this site, so `//evil`, `/\evil` and tab or newline tricks all land on `/visits`.
   - A viewer on `/admin/users` sees "you don't have access" on that same URL (no redirect, so no loop).
   - The nav only shows links the user's role can open, and marks the current one.
-- **Display:** the viewer list shows a grey "Visitor" where a name would be; the visit page's heading is the visit type ("Interview visit"). Values from the CSV are escaped (`esc()`) before going into HTML.
+- **Display:** the viewer list shows a grey "Visitor" where a name would be; the visit page's heading is the visit type ("Interview visit"), with a grey line saying visitor details are only shown to admins. Values from the CSV are escaped (`esc()`) before going into HTML.
 - **States:** "Loading…" while fetching, "No visits match these filters" when the dates and type match nothing, a "No visits match." row in the table when only the list filters do (the table dims while the list reloads), the API's own message in a red box for a 400 or 404, and a yellow warning when the range includes outage days. If no recorded days fall in the range at all, it says "No data was recorded for these dates" instead of "No visits".
 
 ## Where security lives
