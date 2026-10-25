@@ -35,11 +35,11 @@
   <div id="results" hidden>
     <div class="headlines">
       <div><b id="total"></b> visits</div>
-      <div><b id="busiest-day"></b> busiest day</div>
+      <div><b id="busiest-day"></b> busiest day (average per day)</div>
       <div><b id="busiest-hour"></b> busiest hour</div>
     </div>
     <div class="two-col">
-      <div><h3>By day</h3><table id="by-day"></table></div>
+      <div><h3>By day (average visits per day)</h3><table id="by-day"></table></div>
       <div><h3>By hour</h3><table id="by-hour"></table></div>
     </div>
     <table id="visits"></table>
@@ -65,21 +65,30 @@
 
     if (stats.missing_days.length > 0) {
       el("gap").textContent = "No data for " + stats.missing_days.map(formatDate).join(", ") +
-        ". Those days are missing from these counts.";
+        ". The sign-in iPad recorded nothing those days, so the daily averages leave them out.";
       el("gap").hidden = false;
     }
 
     if (list.total === 0) {
+      // No recorded days at all means "we don't know", not "nobody came".
+      el("empty").textContent = stats.days_counted === 0
+        ? "No data was recorded for these dates."
+        : "No visits match these filters.";
       el("empty").hidden = false;
       return;
     }
 
-    // Headline numbers and the two count tables
+    // Headline numbers and the two count tables. The API picks the busiest
+    // day by average per recorded day, so the outage doesn't skew it.
     el("total").textContent = stats.total;
-    el("busiest-day").textContent = busiest(stats.by_day_of_week).day;
-    el("busiest-hour").textContent = formatHour(busiest(stats.by_hour).hour);
-    el("by-day").innerHTML = barRows(stats.by_day_of_week.map((r) => [r.day, r.visits]));
-    el("by-hour").innerHTML = barRows(stats.by_hour.map((r) => [formatHour(r.hour), r.visits]));
+    el("busiest-day").textContent = stats.busiest_day;
+    el("busiest-hour").textContent = formatHour(stats.busiest_hour);
+    el("by-day").innerHTML = barRows(stats.by_day_of_week.map((r) => [
+      r.day,
+      r.average_per_day ?? 0,
+      r.average_per_day === null ? "No data" : `${r.average_per_day} a day`,
+    ]));
+    el("by-hour").innerHTML = barRows(stats.by_hour.map((r) => [formatHour(r.hour), r.visits, r.visits]));
 
     // The visit list. A viewer's rows have no visitor or host names in them,
     // so their table shows "Visitor" and the host's team instead.
@@ -110,16 +119,12 @@
     el("results").hidden = false;
   });
 
-  function busiest(rows) {
-    return rows.reduce((best, row) => (row.visits > best.visits ? row : best));
-  }
-
-  // Table rows of label, count and a bar scaled to the biggest count.
+  // Table rows of [label, value, text to show], with a bar scaled to the biggest value.
   function barRows(rows) {
-    const max = Math.max(...rows.map(([, count]) => count));
-    return rows.map(([label, count]) =>
-      `<tr><td>${label}</td><td>${count}</td>` +
-      `<td><span class="bar" style="width:${Math.round(100 * count / max)}px"></span></td></tr>`
+    const max = Math.max(...rows.map(([, value]) => value)) || 1;
+    return rows.map(([label, value, text]) =>
+      `<tr><td>${label}</td><td>${text}</td>` +
+      `<td><span class="bar" style="width:${Math.round(100 * value / max)}px"></span></td></tr>`
     ).join("");
   }
 

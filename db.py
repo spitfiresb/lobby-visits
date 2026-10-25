@@ -41,8 +41,10 @@ conn = sqlite3.connect(":memory:", check_same_thread=False)
 conn.row_factory = sqlite3.Row
 write_lock = threading.Lock()
 
-# Weekdays with no visits at all (the iPad wasn't recording). Filled by load().
+# Filled by load(): the weekdays with no visits at all (the iPad wasn't
+# recording), and the first and last day the export covers.
 missing_days = []
+export_dates = {"first": None, "last": None}
 
 
 def normalize_email(email):
@@ -132,6 +134,8 @@ def load():
     raw_visits = clean_visits(read_csv("visits.csv"))
     visits, duplicates = remove_duplicate_sign_ins(raw_visits)
     missing_days[:] = find_missing_weekdays(visits)
+    export_dates["first"] = min(v["visit_date"] for v in visits)
+    export_dates["last"] = max(v["visit_date"] for v in visits)
 
     conn.executescript("""
         DROP TABLE IF EXISTS allowed_users;
@@ -293,34 +297,81 @@ def get_visit(visit_id, role):
     return visit_to_dict(row) if row else None
 
 
-DAY_NAMES = ("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
+WEEKDAY_NAMES = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")  # date.weekday() 0-4
+
+
+def recorded_days(filters):
+    """The weekdays in the chosen range that we actually have data for: inside
+    the export's dates, and not one of the outage days. Averages are taken
+    over these days. A recorded day with no matching visits (say, no
+    interviews that day) is a real zero and still counts."""
+    first = max(filters.get("date_from") or export_dates["first"], export_dates["first"])
+    last = min(filters.get("date_to") or export_dates["last"], export_dates["last"])
+
+    days = []
+    day = date.fromisoformat(first)
+    while day <= date.fromisoformat(last):
+        if day.weekday() < 5 and day.isoformat() not in missing_days:
+            days.append(day)
+        day += timedelta(days=1)
+    return days
 
 
 def get_stats(filters):
-    """Visit counts by day of week and by hour of sign-in. Same for both roles:
-    counts contain no identity.
+    """Headline numbers for the chosen filters. Same for both roles: counts
+    contain no identity.
 
-    TODO (deferred): these are raw totals. The 10-13 Aug outage means Mon-Thu
-    have fewer recorded days than Fri, so "busiest day" should use the average
-    per day with data. See "Deferred" in CLAUDE.md."""
+    Busiest day is by AVERAGE visits per recorded day, not by total. The
+    10-13 Aug outage took a Monday-Thursday out of the data but no Friday, and
+    the export has 14 Wednesdays but 13 of every other weekday, so totals
+    compare unequal numbers of days (totals say Wednesday; averages say
+    Tuesday). This is how road traffic counts handle sensor outages (the
+    AASHTO method): average each weekday over the days that were recorded,
+    and never fill in or zero the missing ones. See CLAUDE.md for sources.
+
+    Busiest hour stays a plain count: the outage removed whole days, which
+    lowers every hour equally, so the ranking can't change."""
     where, params = build_where(filters)
 
     total = conn.execute(f"SELECT COUNT(*) FROM visits {where}", params).fetchone()[0]
-    by_day = conn.execute(
-        f"""SELECT CAST(strftime('%w', visit_date) AS INTEGER) AS day, COUNT(*) AS visits
-            FROM visits {where} GROUP BY day ORDER BY day""",
-        params,
-    ).fetchall()
+    visits_on = dict(conn.execute(
+        f"SELECT visit_date, COUNT(*) FROM visits {where} GROUP BY visit_date", params
+    ).fetchall())
     by_hour = conn.execute(
         f"""SELECT CAST(strftime('%H', signed_in_at) AS INTEGER) AS hour, COUNT(*) AS visits
             FROM visits {where} GROUP BY hour ORDER BY hour""",
         params,
     ).fetchall()
 
+    days = recorded_days(filters)
+    by_day = []
+    for weekday, name in enumerate(WEEKDAY_NAMES):
+        these_days = [d for d in days if d.weekday() == weekday]
+        visits = sum(visits_on.get(d.isoformat(), 0) for d in these_days)
+        by_day.append({
+            "day": name,
+            "visits": visits,
+            "days_counted": len(these_days),
+            # None, not 0, when there's no data for that weekday at all.
+            "average_per_day": visits / len(these_days) if these_days else None,
+        })
+
+    # Always one winner. Ties on the exact average go to the higher total.
+    has_data = [d for d in by_day if d["average_per_day"] is not None]
+    busiest_day = max(has_data, key=lambda d: (d["average_per_day"], d["visits"]), default=None)
+    busiest_hour = max(by_hour, key=lambda h: h["visits"], default=None)
+
+    for d in by_day:  # round only after picking the winner, so rounding can't create a tie
+        if d["average_per_day"] is not None:
+            d["average_per_day"] = round(d["average_per_day"], 1)
+
     return {
         "total": total,
-        "by_day_of_week": [{"day": DAY_NAMES[r["day"]], "visits": r["visits"]} for r in by_day],
-        "by_hour": [{"hour": r["hour"], "visits": r["visits"]} for r in by_hour],
+        "days_counted": len(days),
+        "busiest_day": busiest_day["day"] if busiest_day and total else None,
+        "busiest_hour": busiest_hour["hour"] if busiest_hour else None,
+        "by_day_of_week": by_day,
+        "by_hour": [{"hour": h["hour"], "visits": h["visits"]} for h in by_hour],
         "missing_days": missing_days_in(filters),
     }
 
