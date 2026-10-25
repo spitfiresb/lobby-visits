@@ -2,6 +2,7 @@
 *.md
 !README.md
 !ARCHITECTURE.md
+!NOTE-TO-DANA.md
 /*.html
 .claude/
 __pycache__/
